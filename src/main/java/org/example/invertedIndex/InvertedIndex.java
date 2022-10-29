@@ -2,12 +2,12 @@ package org.example.invertedIndex;
 
 import com.github.pemistahl.lingua.api.Language;
 import com.github.pemistahl.lingua.api.LanguageDetectorBuilder;
+import com.google.gson.Gson;
 import opennlp.tools.postag.POSModel;
 import opennlp.tools.postag.POSTaggerME;
 import com.github.pemistahl.lingua.api.LanguageDetector;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URL;
 import java.util.*;
 
@@ -129,6 +129,15 @@ public class InvertedIndex implements InvertedIndexInterface {
             e.printStackTrace();
         }
 
-        System.out.println(multiMap);
+        Gson gson = new Gson();
+        String json = gson.toJson(multiMap);
+
+        try {
+            FileWriter myWriter = new FileWriter("words.json");
+            myWriter.write(json);
+            myWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

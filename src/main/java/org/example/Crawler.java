@@ -16,6 +16,9 @@ import java.nio.channels.ReadableByteChannel;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
+
 //Timer and threads
 //https://www.digitalocean.com/community/tutorials/java-timer-timertask-example
 
@@ -54,7 +57,7 @@ public class Crawler {
         }
 
         try {
-            crawl(1, 10, fileDir, url);
+            crawl(1, 50, fileDir, url);
         } catch (IOException e) {
             System.err.println("Failed crawl website!: " + e.getMessage());
 //            e.printStackTrace();
@@ -62,13 +65,20 @@ public class Crawler {
     }
 
     private static void crawl(int id, int maxId, String fileDir, String url) throws IOException {
-        if (id <= maxId) {
-            String formattedUrl = url + "%s/pg%s.txt".formatted(id, id);
-            String formattedFileDir = fileDir + "/%s.txt".formatted(id);
 
-            downloadUsingNIO(formattedUrl, formattedFileDir);
-            crawl(id + 1, maxId, fileDir, url);
-        }
+        // TODO: Number of threads based on individual hardware
+
+        IntStream range = IntStream.rangeClosed(id, maxId);
+        range.parallel().forEach(x -> {
+            String formattedUrl = url + "%s/pg%s.txt".formatted(x, x);
+            String formattedFileDir = fileDir + "/%s.txt".formatted(x);
+
+            try {
+                downloadUsingNIO(formattedUrl, formattedFileDir);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     private static void downloadUsingNIO(String formattedUrl, String formattedFileDir) throws IOException {

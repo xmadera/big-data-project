@@ -13,17 +13,44 @@ import java.nio.file.Path;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
+//Timer and threads
+//https://www.digitalocean.com/community/tutorials/java-timer-timertask-example
+
 public class Crawler {
+    Timer timer;
+
+    public Crawler() {
+        timer = new Timer();
+        timer.schedule(new CrawlerTask(), 1000, 60000); // execute CrawlerTask every 60 seconds
+    }
 
     public static void main(String[] args) {
+        new Crawler();
+    }
+
+    static class CrawlerTask extends TimerTask {
+        public void run() {
+            List<Integer> listOfNumbers = Arrays.asList(1, 2, 3, 4);
+            listOfNumbers.parallelStream().forEach(number ->
+                    System.out.println(number + " " + Thread.currentThread().getName())
+            );
+            setupCrawler();
+//          timer.cancel(); //Terminate the timer thread
+        }
+    }
+
+    private static void setupCrawler() {
         String url = "https://www.gutenberg.org/cache/epub/";
         String currentDate = getCurrentTime();
         String fileDir = "src/main/document_repository/%s".formatted(currentDate);
 
         try {
             File theDir = new File(fileDir);
-    //        file.exists() && !file.isDirectory();
-            if (!Files.exists(Path.of(fileDir))){
+            //        file.exists() && !file.isDirectory();
+            if (!Files.exists(Path.of(fileDir))) {
                 Files.createDirectory(theDir.toPath());
             }
         } catch (IOException e) {
@@ -64,46 +91,3 @@ public class Crawler {
         return dateFormat.format(date);
     }
 }
-
-
-//public class Crawler {
-//    public static void main(String[] args) {
-//        String url = "https://www.gutenberg.org/";    // https://www.gutenberg.org/cache/epub/69035/pg69035.txt
-//        crawl(1, url, new ArrayList<String>());
-//    }
-//
-//    private static void crawl(int level, String url, ArrayList<String> visited) {
-//        if (level <= 5) {
-//            System.out.println("Current level: " + level);
-//            Document doc = request(url, visited);
-//
-//            if (doc != null) {
-//                for (Element link : doc.select("a[href]")) {
-//                    String next_link = link.absUrl("href");
-//                    if (!visited.contains(next_link)) {
-//                        crawl(level++, next_link, visited);
-//                    }
-//                }
-//            }
-//        }
-//    }
-//
-//    private static Document request(String url, ArrayList<String> visited) {
-//        try {
-//            Connection con = Jsoup.connect(url);
-//            Document doc = con.get();
-//
-//            if (con.response().statusCode() == 200) {
-//                System.out.println("Link " + url);
-//                System.out.println(doc.title());
-//                visited.add(url); // Already visited urls array
-//
-//                return doc;
-//            }
-//            return null;
-//        }
-//        catch(IOException e) {
-//            return null;
-//        }
-//    }
-//}

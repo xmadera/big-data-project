@@ -23,75 +23,112 @@ public class InvertedIndex implements InvertedIndexInterface {
         InputStream posModelInDE = classloader.getResourceAsStream("opennlp-de-ud-gsd-pos-1.0-1.9.3.bin");
         InputStream posModelInFR = classloader.getResourceAsStream("opennlp-fr-ud-ftb-pos-1.0-1.9.3.bin");
 
+        POSTaggerME posTaggerEN = null;
+        POSTaggerME posTaggerDE = null;
+        POSTaggerME posTaggerFR = null;
+
+        try {
+            assert posModelInEN != null;
+            POSModel posModelEN = new POSModel(posModelInEN);
+            assert posModelInDE != null;
+            POSModel posModelDE = new POSModel(posModelInDE);
+            assert posModelInFR != null;
+            POSModel posModelFR = new POSModel(posModelInFR);
+
+            posTaggerEN = new POSTaggerME(posModelEN);
+            posTaggerDE = new POSTaggerME(posModelDE);
+            posTaggerFR = new POSTaggerME(posModelFR);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        String documentId = null;
+
         Scanner scanner = null;
+
+        Map<Object, ArrayList<Object>> multiMap = new HashMap<>();
 
         for (String document : documentList) {
             ArrayList<String> documentWords = new ArrayList<>();
 
             try {
                 URL url = new URL(document);
+
+                String[] urlPath = url.getPath().split("/");
+                documentId = urlPath[urlPath.length - 2];
+
                 scanner = new Scanner(url.openStream()).useDelimiter("\\W+");
 
-                assert posModelInEN != null;
-                POSModel posModelEN = new POSModel(posModelInEN);
-                assert posModelInDE != null;
-                POSModel posModelDE = new POSModel(posModelInDE);
-                assert posModelInFR != null;
-                POSModel posModelFR = new POSModel(posModelInFR);
-
-                POSTaggerME posTaggerEN = new POSTaggerME(posModelEN);
-                POSTaggerME posTaggerDE = new POSTaggerME(posModelDE);
-                POSTaggerME posTaggerFR = new POSTaggerME(posModelFR);
-
-                final LanguageDetector detector = LanguageDetectorBuilder.fromLanguages(
-                        Language.ENGLISH,
-                        Language.GERMAN,
-                        Language.FRENCH
-                ).build();
-
-                while (scanner.hasNext()) {
-                    String nextWord = scanner.next().toLowerCase();
-                    if (!isStringNumeric(nextWord) && nextWord.length() > 1 && !documentWords.contains(nextWord)) {
-                        documentWords.add(nextWord);
-                    }
-                }
-
-                Iterator<String> documentWordsIterator = documentWords.iterator();
-
-                while (documentWordsIterator.hasNext()) {
-                    String[] token = new String[1];
-                    String[] tag = new String[1];
-                    token[0] = documentWordsIterator.next();
-
-                    Language detectedLanguage = detector.detectLanguageOf(token[0]);
-
-                    if (detectedLanguage == Language.ENGLISH) {
-                        tag = posTaggerEN.tag(token);
-                    } else if (detectedLanguage == Language.GERMAN) {
-                        tag = posTaggerDE.tag(token);
-                    } else if (detectedLanguage == Language.FRENCH) {
-                        tag = posTaggerFR.tag(token);
-                    }
-
-                    if (tag[0].equals("NUM") || tag[0].equals("DET") || tag[0].equals("ADP") || tag[0].equals("AUX")) {
-                        documentWordsIterator.remove();
-                    }
-                }
-
-                System.out.println(documentWords);
             } catch (IOException e) {
                 e.printStackTrace();
-            } finally {
-                if (scanner != null) scanner.close();
             }
-        }
 
+            final LanguageDetector detector = LanguageDetectorBuilder.fromLanguages(
+                    Language.ENGLISH,
+                    Language.GERMAN,
+                    Language.FRENCH
+            ).build();
+
+            assert scanner != null;
+
+            while (scanner.hasNext()) {
+                String nextWord = scanner.next().toLowerCase();
+                if (!isStringNumeric(nextWord) && nextWord.length() > 1 && !documentWords.contains(nextWord)) {
+                    documentWords.add(nextWord);
+                }
+            }
+
+            Iterator<String> documentWordsIterator = documentWords.iterator();
+
+            while (documentWordsIterator.hasNext()) {
+                String[] token = new String[1];
+                String[] tag = new String[1];
+                token[0] = documentWordsIterator.next();
+
+                Language detectedLanguage = detector.detectLanguageOf(token[0]);
+
+                assert posTaggerEN != null;
+
+                if (detectedLanguage == Language.ENGLISH) {
+                    tag = posTaggerEN.tag(token);
+                } else if (detectedLanguage == Language.GERMAN) {
+                    tag = posTaggerDE.tag(token);
+                } else if (detectedLanguage == Language.FRENCH) {
+                    tag = posTaggerFR.tag(token);
+                }
+
+                if (tag[0].equals("NUM") || tag[0].equals("DET") || tag[0].equals("ADP") || tag[0].equals("AUX")) {
+                    documentWordsIterator.remove();
+                }
+            }
+
+            String finalDocumentId = documentId;
+            assert finalDocumentId != null;
+
+            documentWords.forEach(word -> {
+                if (multiMap.containsKey(word)) {
+                    ArrayList<Object> existingArray = multiMap.get(word);
+                    existingArray.add(finalDocumentId);
+
+                    multiMap.replace(word, existingArray);
+                } else {
+                    ArrayList<Object> newArray = new ArrayList<>();
+                    newArray.add(finalDocumentId);
+
+                    multiMap.put(word, newArray);
+                }
+            });
+        }
         try {
             for (InputStream inputStream : Arrays.asList(posModelInEN, posModelInDE, posModelInFR)) {
                 if (inputStream != null) inputStream.close();
             }
+            if (scanner != null) scanner.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        System.out.println(multiMap);
     }
 }

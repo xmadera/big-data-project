@@ -16,7 +16,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.IntStream;
 
 //Timer and threads
@@ -66,18 +66,23 @@ public class Crawler {
 
     private static void crawl(int id, int maxId, String fileDir, String url) throws IOException {
 
-        // TODO: Number of threads based on individual hardware
+        // Number of threads based on individual hardware
+        System.out.println("Number of available threads " + Runtime.getRuntime().availableProcessors());
+        final ForkJoinPool forkJoinPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors());
 
         IntStream range = IntStream.rangeClosed(id, maxId);
-        range.parallel().forEach(x -> {
-            String formattedUrl = url + "%s/pg%s.txt".formatted(x, x);
-            String formattedFileDir = fileDir + "/%s.txt".formatted(x);
 
-            try {
-                downloadUsingNIO(formattedUrl, formattedFileDir);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+        forkJoinPool.submit(() -> {
+            range.parallel().forEach(x -> {
+                String formattedUrl = url + "%s/pg%s.txt".formatted(x, x);
+                String formattedFileDir = fileDir + "/%s.txt".formatted(x);
+
+                try {
+                    downloadUsingNIO(formattedUrl, formattedFileDir);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
         });
     }
 

@@ -145,6 +145,8 @@ public class InvertedIndex implements InvertedIndexInterface {
         try {
             FileWriter myWriter = new FileWriter("words.json");
             myWriter.write(json);
+
+            System.out.println("Working Directory = " + System.getProperty("user.dir"));
             myWriter.close();
         } catch (IOException e) {
             e.printStackTrace();

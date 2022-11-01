@@ -1,7 +1,6 @@
-package org.example;
+package org.ulpgc;
 
 import org.example.invertedIndex.InvertedIndex;
-
 import java.util.List;
 
 public class Main {

@@ -15,8 +15,13 @@ import static org.example.tools.StringTools.isStringNumeric;
 
 public class InvertedIndex implements InvertedIndexInterface {
 
+    static final String DOCUMENTS_MAP_KEY = "documents";
+    static final String LANGUAGE_MAP_KEY = "language";
+
     @Override
+    @SuppressWarnings(value = "unchecked")
     public void inverted_index_of(List<String> documentList) {
+        Gson gson = new Gson();
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
 
         InputStream posModelInEN = classloader.getResourceAsStream("opennlp-en-ud-ewt-pos-1.0-1.9.3.bin");
@@ -47,7 +52,7 @@ public class InvertedIndex implements InvertedIndexInterface {
 
         Scanner scanner = null;
 
-        Map<Object, ArrayList<Object>> multiMap = new HashMap<>();
+        Map<Object, Map<Object, Object>> multiMap = new HashMap<>();
 
         for (String document : documentList) {
             ArrayList<String> documentWords = new ArrayList<>();
@@ -80,6 +85,7 @@ public class InvertedIndex implements InvertedIndexInterface {
             }
 
             Iterator<String> documentWordsIterator = documentWords.iterator();
+            Map<Object, Object> documentWordsLanguageMap = new HashMap<>();
 
             while (documentWordsIterator.hasNext()) {
                 String[] token = new String[1];
@@ -87,6 +93,8 @@ public class InvertedIndex implements InvertedIndexInterface {
                 token[0] = documentWordsIterator.next();
 
                 Language detectedLanguage = detector.detectLanguageOf(token[0]);
+
+                documentWordsLanguageMap.put(token[0], detectedLanguage.getIsoCode639_1());
 
                 assert posTaggerEN != null;
 
@@ -107,18 +115,21 @@ public class InvertedIndex implements InvertedIndexInterface {
             assert finalDocumentId != null;
 
             documentWords.forEach(word -> {
-                if (multiMap.containsKey(word)) {
-                    ArrayList<Object> existingArray = multiMap.get(word);
-                    existingArray.add(finalDocumentId);
+                if (!multiMap.containsKey(word)) multiMap.put(word, new HashMap<>());
 
-                    multiMap.replace(word, existingArray);
+                if (multiMap.get(word).containsKey(DOCUMENTS_MAP_KEY)) {
+                    ((ArrayList<Object>) multiMap.get(word).get(DOCUMENTS_MAP_KEY)).add(finalDocumentId);
                 } else {
                     ArrayList<Object> newArray = new ArrayList<>();
                     newArray.add(finalDocumentId);
-
-                    multiMap.put(word, newArray);
+                    multiMap.get(word).put(DOCUMENTS_MAP_KEY, newArray);
                 }
+
+
+                multiMap.get(word).put(LANGUAGE_MAP_KEY, documentWordsLanguageMap.get(word));
             });
+
+
         }
         try {
             for (InputStream inputStream : Arrays.asList(posModelInEN, posModelInDE, posModelInFR)) {
@@ -129,7 +140,6 @@ public class InvertedIndex implements InvertedIndexInterface {
             e.printStackTrace();
         }
 
-        Gson gson = new Gson();
         String json = gson.toJson(multiMap);
 
         try {

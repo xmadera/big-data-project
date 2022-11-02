@@ -1,4 +1,4 @@
-package org.example;
+package org.ulpgc.crawler;
 
 import java.io.File;
 import java.io.FileOutputStream;

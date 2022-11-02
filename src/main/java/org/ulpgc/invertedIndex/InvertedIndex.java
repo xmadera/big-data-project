@@ -8,18 +8,49 @@ import opennlp.tools.postag.POSTaggerME;
 import com.github.pemistahl.lingua.api.LanguageDetector;
 
 import java.io.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static org.ulpgc.tools.StringTools.isStringNumeric;
 
-public class InvertedIndex implements InvertedIndexInterface {
+public class InvertedIndex {
 
+    Timer timer;
     static final String DOCUMENTS_MAP_KEY = "documents";
     static final String LANGUAGE_MAP_KEY = "language";
 
-    @Override
     @SuppressWarnings(value = "unchecked")
-    public void inverted_index_of(List<String> documentList) {
+    public void inverted_index_of() {
+        timer = new Timer();
+        timer.schedule(new InvertedIndex.invertedIndexTask(), 1000, 60000); // execute CrawlerTask every 60 seconds
+    }
+
+    static class invertedIndexTask extends TimerTask {
+        public void run() {
+
+            // Get list of txt files from folder based on current time
+            String currentDate = getCurrentTime();
+            File folder = new File("src/main/document_repository/%s".formatted(currentDate));
+            File[] listOfFiles = folder.listFiles();
+
+//            assert listOfFiles != null;
+            System.out.println("trying now");
+            if (listOfFiles != null) {
+                String[] documentList = new String[listOfFiles.length];
+                System.out.println("trying now IF");
+
+                for (int i = 0; i < listOfFiles.length; i++) {
+                    documentList[i] = listOfFiles[i].getPath();
+                }
+
+                executeInvertedIndex(List.of(documentList));
+//          timer.cancel(); //Terminate the timer thread
+            }
+        }
+    }
+
+    public static void executeInvertedIndex(List<String> documentList) {
         Gson gson = new Gson();
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
 
@@ -145,5 +176,11 @@ public class InvertedIndex implements InvertedIndexInterface {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private static String getCurrentTime() {
+        DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+        Date date = new Date();
+        return dateFormat.format(date);
     }
 }

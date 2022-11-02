@@ -1,4 +1,4 @@
-package org.example.invertedIndex;
+package org.ulpgc.invertedIndex;
 
 import com.github.pemistahl.lingua.api.Language;
 import com.github.pemistahl.lingua.api.LanguageDetectorBuilder;
@@ -8,21 +8,57 @@ import opennlp.tools.postag.POSTaggerME;
 import com.github.pemistahl.lingua.api.LanguageDetector;
 
 import java.io.*;
-import java.net.URL;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
-import static org.example.tools.StringTools.isStringNumeric;
+import static org.ulpgc.tools.StringTools.isStringNumeric;
 
-public class InvertedIndex implements InvertedIndexInterface {
+public class InvertedIndex {
 
+    Timer timer;
     static final String DOCUMENTS_MAP_KEY = "documents";
     static final String LANGUAGE_MAP_KEY = "language";
 
-    @Override
-    @SuppressWarnings(value = "unchecked")
-    public void inverted_index_of(List<String> documentList) {
-        Gson gson = new Gson();
-        ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+    static ArrayList<File> listOfProcessedFiles = new ArrayList<>();
+    static Map<Object, Map<Object, Object>> multiMap = new HashMap<>();
+
+    static Gson gson = new Gson();
+    static ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+
+    public InvertedIndex() {
+        inverted_index_of();
+    }
+
+    public void inverted_index_of() {
+        timer = new Timer();
+        timer.schedule(new InvertedIndex.invertedIndexTask(), 0, 60_000); // execute CrawlerTask every 60 seconds
+    }
+
+    static class invertedIndexTask extends TimerTask {
+        public void run() {
+
+            // Get list of txt files from folder based on current time
+            String currentDate = getCurrentTime();
+            File folder = new File("src/main/document_repository/%s".formatted(currentDate));
+
+            if (folder.listFiles() == null) return;
+
+            ArrayList<File> tempListFiles = new ArrayList<>(List.of(Objects.requireNonNull(folder.listFiles())));
+            tempListFiles.removeIf(file -> listOfProcessedFiles.contains(file));
+            listOfProcessedFiles.addAll(tempListFiles);
+
+            List<String> documentPaths = tempListFiles.stream().map(File::getPath).collect(Collectors.toList());
+
+            if (documentPaths.isEmpty()) return;
+
+            System.out.println("Documents to process inside inverted_index: " + documentPaths);
+            executeInvertedIndex(documentPaths);
+        }
+    }
+
+    public static void executeInvertedIndex(List<String> documentList) {
 
         InputStream posModelInEN = classloader.getResourceAsStream("opennlp-en-ud-ewt-pos-1.0-1.9.3.bin");
         InputStream posModelInDE = classloader.getResourceAsStream("opennlp-de-ud-gsd-pos-1.0-1.9.3.bin");
@@ -52,19 +88,13 @@ public class InvertedIndex implements InvertedIndexInterface {
 
         Scanner scanner = null;
 
-        Map<Object, Map<Object, Object>> multiMap = new HashMap<>();
-
         for (String document : documentList) {
             ArrayList<String> documentWords = new ArrayList<>();
 
             try {
-                URL url = new URL(document);
-
-                String[] urlPath = url.getPath().split("/");
-                documentId = urlPath[urlPath.length - 2];
-
-                scanner = new Scanner(url.openStream()).useDelimiter("\\W+");
-
+                File file = new File(document);
+                documentId = file.getName().substring(0, file.getName().lastIndexOf('.'));
+                scanner = new Scanner(file).useDelimiter("\\W+");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -106,14 +136,14 @@ public class InvertedIndex implements InvertedIndexInterface {
                     tag = posTaggerFR.tag(token);
                 }
 
-                if (tag[0].equals("NUM") || tag[0].equals("DET") || tag[0].equals("ADP") || tag[0].equals("AUX")) {
-                    documentWordsIterator.remove();
+                if (tag[0] != null) {
+                    if (tag[0].equals("NUM") || tag[0].equals("DET") || tag[0].equals("ADP") || tag[0].equals("AUX")) {
+                        documentWordsIterator.remove();
+                    }
                 }
             }
 
             String finalDocumentId = documentId;
-            assert finalDocumentId != null;
-
             documentWords.forEach(word -> {
                 if (!multiMap.containsKey(word)) multiMap.put(word, new HashMap<>());
 
@@ -125,11 +155,8 @@ public class InvertedIndex implements InvertedIndexInterface {
                     multiMap.get(word).put(DOCUMENTS_MAP_KEY, newArray);
                 }
 
-
                 multiMap.get(word).put(LANGUAGE_MAP_KEY, documentWordsLanguageMap.get(word));
             });
-
-
         }
         try {
             for (InputStream inputStream : Arrays.asList(posModelInEN, posModelInDE, posModelInFR)) {
@@ -145,11 +172,16 @@ public class InvertedIndex implements InvertedIndexInterface {
         try {
             FileWriter myWriter = new FileWriter("words.json");
             myWriter.write(json);
-
-            System.out.println("Working Directory = " + System.getProperty("user.dir"));
             myWriter.close();
+            System.out.println("Words json updated");
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private static String getCurrentTime() {
+        DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+        Date date = new Date();
+        return dateFormat.format(date);
     }
 }

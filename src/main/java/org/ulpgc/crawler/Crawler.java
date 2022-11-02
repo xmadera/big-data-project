@@ -19,19 +19,21 @@ import java.util.TimerTask;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.IntStream;
 
-public class Crawler {
+public class Crawler implements CrawlerInterface {
     Timer timer;
+    static int id;
+    static int maxId;
 
-    public Crawler() {
+
+    public void timerCrawler(int id, int maxId) {
+        Crawler.id = id;
+        Crawler.maxId = maxId;
+
         timer = new Timer();
-        timer.schedule(new CrawlerTask(), 1000, 60000); // execute CrawlerTask every 60 seconds
+        timer.schedule(new crawlerTask(), 1000, 60000); // execute CrawlerTask every 60 seconds
     }
 
-    public static void main(String[] args) {
-        new Crawler();
-    }
-
-    static class CrawlerTask extends TimerTask {
+    static class crawlerTask extends TimerTask {
         public void run() {
             setupCrawler();
 //          timer.cancel(); //Terminate the timer thread
@@ -61,14 +63,14 @@ public class Crawler {
         }
 
         try {
-            crawl(1, 10, fileDir, url);
+            crawl(fileDir, url);
         } catch (IOException e) {
             System.err.println("Failed crawl website!: " + e.getMessage());
 //            e.printStackTrace();
         }
     }
 
-    private static void crawl(int id, int maxId, String fileDir, String url) throws IOException {
+    private static void crawl(String fileDir, String url) throws IOException {
 
         // Number of threads based on individual hardware
         System.out.println("Number of available threads " + Runtime.getRuntime().availableProcessors());

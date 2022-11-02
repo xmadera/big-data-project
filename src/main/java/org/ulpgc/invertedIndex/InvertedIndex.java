@@ -8,7 +8,6 @@ import opennlp.tools.postag.POSTaggerME;
 import com.github.pemistahl.lingua.api.LanguageDetector;
 
 import java.io.*;
-import java.net.URL;
 import java.util.*;
 
 import static org.ulpgc.tools.StringTools.isStringNumeric;
@@ -58,13 +57,9 @@ public class InvertedIndex implements InvertedIndexInterface {
             ArrayList<String> documentWords = new ArrayList<>();
 
             try {
-                URL url = new URL(document);
-
-                String[] urlPath = url.getPath().split("/");
-                documentId = urlPath[urlPath.length - 2];
-
-                scanner = new Scanner(url.openStream()).useDelimiter("\\W+");
-
+                File file = new File(document);
+                documentId = file.getName().substring(0, file.getName().lastIndexOf('.'));
+                scanner = new Scanner(file).useDelimiter("\\W+");
             } catch (IOException e) {
                 e.printStackTrace();
             }

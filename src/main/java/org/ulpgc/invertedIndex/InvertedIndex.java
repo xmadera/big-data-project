@@ -34,11 +34,8 @@ public class InvertedIndex {
             File folder = new File("src/main/document_repository/%s".formatted(currentDate));
             File[] listOfFiles = folder.listFiles();
 
-//            assert listOfFiles != null;
-            System.out.println("trying now");
             if (listOfFiles != null) {
                 String[] documentList = new String[listOfFiles.length];
-                System.out.println("trying now IF");
 
                 for (int i = 0; i < listOfFiles.length; i++) {
                     documentList[i] = listOfFiles[i].getPath();

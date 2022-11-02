@@ -19,9 +19,6 @@ import java.util.TimerTask;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.IntStream;
 
-//Timer and threads
-//https://www.digitalocean.com/community/tutorials/java-timer-timertask-example
-
 public class Crawler {
     Timer timer;
 
@@ -44,11 +41,18 @@ public class Crawler {
     private static void setupCrawler() {
         String url = "https://www.gutenberg.org/cache/epub/";
         String currentDate = getCurrentTime();
+
+        String fileRepo = "src/main/document_repository";
         String fileDir = "src/main/document_repository/%s".formatted(currentDate);
 
         try {
+            File theRepo = new File(fileRepo);
             File theDir = new File(fileDir);
-            //        file.exists() && !file.isDirectory();
+
+            if (!Files.exists(Path.of(theRepo.toURI()))) {
+                Files.createDirectory(theRepo.toPath());
+            }
+
             if (!Files.exists(Path.of(fileDir))) {
                 Files.createDirectory(theDir.toPath());
             }
@@ -57,7 +61,7 @@ public class Crawler {
         }
 
         try {
-            crawl(1, 50, fileDir, url);
+            crawl(1, 10, fileDir, url);
         } catch (IOException e) {
             System.err.println("Failed crawl website!: " + e.getMessage());
 //            e.printStackTrace();

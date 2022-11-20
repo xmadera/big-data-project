@@ -41,7 +41,7 @@ public class InvertedIndex {
 
             // Get list of txt files from folder based on current time
             String currentDate = getCurrentTime();
-            File folder = new File("src/main/document_repository/%s".formatted(currentDate));
+            File folder = new File(String.format("src/main/document_repository/%s", currentDate));
 
             if (folder.listFiles() == null) return;
 

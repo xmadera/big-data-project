@@ -53,7 +53,7 @@ public class Crawler implements CrawlerInterface {
         String currentDate = getCurrentTime();
 
         String fileRepo = "src/main/document_repository";
-        String fileDir = "src/main/document_repository/%s".formatted(currentDate);
+        String fileDir = String.format("src/main/document_repository/%s", currentDate);
 
         try {
             File theRepo = new File(fileRepo);
@@ -76,8 +76,8 @@ public class Crawler implements CrawlerInterface {
     private static void crawl(String fileDir, String url) {
 
         forkJoinPool.submit(() -> range.parallel().forEach(x -> {
-            String formattedUrl = url + "%s/pg%s.txt".formatted(x, x);
-            String formattedFileDir = fileDir + "/%s.txt".formatted(x);
+            String formattedUrl = url + String.format("%s/pg%s.txt", x, x);
+            String formattedFileDir = fileDir + String.format("/%s.txt", x);
 
             downloadUsingNIO(formattedUrl, formattedFileDir);
 

@@ -60,7 +60,7 @@ public class Crawler implements CrawlerInterface {
                 Files.createDirectory(theRepo.toPath());
             }
         } catch (IOException e) {
-            System.err.println("Failed to create directory!: " + e.getMessage());
+            throw new RuntimeException(e);
         }
 
         crawl();
@@ -97,9 +97,9 @@ public class Crawler implements CrawlerInterface {
             fos.close();
             rbc.close();
         } catch (FileNotFoundException e) {
-            System.out.println("File " + formattedUrl + " does not exist!");
+            System.err.println("File " + formattedUrl + " does not exist!");
         } catch (IOException e) {
-            System.out.println("File " + formattedUrl + " could not be downloaded!");
+            System.err.println("File " + formattedUrl + " could not be downloaded!");
         }
     }
 }

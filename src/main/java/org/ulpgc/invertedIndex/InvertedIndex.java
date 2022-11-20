@@ -35,6 +35,20 @@ public class InvertedIndex {
     static Gson gson = new Gson();
     static ClassLoader classloader = Thread.currentThread().getContextClassLoader();
 
+    static InputStream posModelInEN = classloader.getResourceAsStream("opennlp-en-ud-ewt-pos-1.0-1.9.3.bin");
+    static InputStream posModelInDE = classloader.getResourceAsStream("opennlp-de-ud-gsd-pos-1.0-1.9.3.bin");
+    static InputStream posModelInFR = classloader.getResourceAsStream("opennlp-fr-ud-ftb-pos-1.0-1.9.3.bin");
+
+    static POSTaggerME posTaggerEN = null;
+    static POSTaggerME posTaggerDE = null;
+    static POSTaggerME posTaggerFR = null;
+
+    static final LanguageDetector detector = LanguageDetectorBuilder.fromLanguages(
+            Language.ENGLISH,
+            Language.GERMAN,
+            Language.FRENCH
+    ).build();
+
     public InvertedIndex() {
         try {
             File theRepo = new File(DATA_MART_PATH);
@@ -43,7 +57,23 @@ public class InvertedIndex {
                 Files.createDirectory(theRepo.toPath());
             }
         } catch (IOException e) {
-            System.err.println("Failed to create directory!: " + e.getMessage());
+            throw new RuntimeException(e);
+        }
+
+        try {
+            POSModel posModelEN = new POSModel(posModelInEN);
+            POSModel posModelDE = new POSModel(posModelInDE);
+            POSModel posModelFR = new POSModel(posModelInFR);
+
+            for (InputStream inputStream : Arrays.asList(posModelInEN, posModelInDE, posModelInFR)) {
+                if (inputStream != null) inputStream.close();
+            }
+
+            posTaggerEN = new POSTaggerME(posModelEN);
+            posTaggerDE = new POSTaggerME(posModelDE);
+            posTaggerFR = new POSTaggerME(posModelFR);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
         inverted_index_of();
@@ -69,34 +99,8 @@ public class InvertedIndex {
     }
 
     public static void executeInvertedIndex(List<String> documentList) {
-
-        InputStream posModelInEN = classloader.getResourceAsStream("opennlp-en-ud-ewt-pos-1.0-1.9.3.bin");
-        InputStream posModelInDE = classloader.getResourceAsStream("opennlp-de-ud-gsd-pos-1.0-1.9.3.bin");
-        InputStream posModelInFR = classloader.getResourceAsStream("opennlp-fr-ud-ftb-pos-1.0-1.9.3.bin");
-
-        POSTaggerME posTaggerEN = null;
-        POSTaggerME posTaggerDE = null;
-        POSTaggerME posTaggerFR = null;
-
-        try {
-            assert posModelInEN != null;
-            POSModel posModelEN = new POSModel(posModelInEN);
-            assert posModelInDE != null;
-            POSModel posModelDE = new POSModel(posModelInDE);
-            assert posModelInFR != null;
-            POSModel posModelFR = new POSModel(posModelInFR);
-
-            posTaggerEN = new POSTaggerME(posModelEN);
-            posTaggerDE = new POSTaggerME(posModelDE);
-            posTaggerFR = new POSTaggerME(posModelFR);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        String documentId = null;
-
-        Scanner scanner = null;
+        String documentId;
+        Scanner scanner;
 
         for (String document : documentList) {
             ArrayList<String> documentWords = new ArrayList<>();
@@ -106,16 +110,8 @@ public class InvertedIndex {
                 documentId = file.getName().substring(0, file.getName().lastIndexOf('.'));
                 scanner = new Scanner(file).useDelimiter("\\W+");
             } catch (IOException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
-
-            final LanguageDetector detector = LanguageDetectorBuilder.fromLanguages(
-                    Language.ENGLISH,
-                    Language.GERMAN,
-                    Language.FRENCH
-            ).build();
-
-            assert scanner != null;
 
             while (scanner.hasNext()) {
                 String nextWord = scanner.next().toLowerCase();
@@ -135,8 +131,6 @@ public class InvertedIndex {
                 Language detectedLanguage = detector.detectLanguageOf(token[0]);
 
                 documentWordsLanguageMap.put(token[0], detectedLanguage.getIsoCode639_1().toString().toLowerCase());
-
-                assert posTaggerEN != null;
 
                 if (detectedLanguage == Language.ENGLISH) {
                     tag = posTaggerEN.tag(token);
@@ -166,14 +160,8 @@ public class InvertedIndex {
                     multiMap.get(word).put(LANGUAGE_MAP_KEY, documentWordsLanguageMap.get(word));
                 }
             });
-        }
-        try {
-            for (InputStream inputStream : Arrays.asList(posModelInEN, posModelInDE, posModelInFR)) {
-                if (inputStream != null) inputStream.close();
-            }
-            if (scanner != null) scanner.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+
+            scanner.close();
         }
 
         try {

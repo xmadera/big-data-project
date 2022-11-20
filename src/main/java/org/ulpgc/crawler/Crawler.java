@@ -77,7 +77,7 @@ public class Crawler implements CrawlerInterface {
             })).get();
 
             Crawler.id += Crawler.endId + 1;
-            Crawler.endId += Crawler.endId;
+            Crawler.endId += Crawler.id;
             System.out.println("Crawler finished");
 
             // start inverted index

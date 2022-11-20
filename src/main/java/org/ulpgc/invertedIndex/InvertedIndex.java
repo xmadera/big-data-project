@@ -7,6 +7,7 @@ import one.util.streamex.EntryStream;
 import opennlp.tools.postag.POSModel;
 import opennlp.tools.postag.POSTaggerME;
 import com.github.pemistahl.lingua.api.LanguageDetector;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -22,16 +23,20 @@ public class InvertedIndex {
 
     static final String DOCUMENTS_MAP_KEY = "documents";
     static final String LANGUAGE_MAP_KEY = "language";
-
+    static final String ID_MAP_KEY = "id";
+    static final String TITLE_MAP_KEY = "title";
+    static final String AUTHOR_MAP_KEY = "author";
+    static final String RELEASE_DATE_MAP_KEY = "release_date";
     static final String DATA_MART_PATH = "src/main/data_mart/";
     static final String DATA_LAKE_PATH = "src/main/data_lake/";
     static final String WORDS_JSON_FILE = DATA_MART_PATH + "words.json";
+    static final String METADATA_JSON_FILE = DATA_MART_PATH + "metadata.json";
 
     static final ArrayList<String> TAGS_TO_REMOVE = new ArrayList<String>(List.of("NUM", "DET", "ADP", "AUX"));
 
     static ArrayList<File> listOfProcessedFiles = new ArrayList<>();
     static Map<Object, Map<Object, Object>> multiMap = new HashMap<>();
-
+    static Map<Object, Object> documentMetadataMap = new HashMap<>();
     static Gson gson = new Gson();
     static ClassLoader classloader = Thread.currentThread().getContextClassLoader();
 
@@ -43,11 +48,7 @@ public class InvertedIndex {
     static POSTaggerME posTaggerDE = null;
     static POSTaggerME posTaggerFR = null;
 
-    static final LanguageDetector detector = LanguageDetectorBuilder.fromLanguages(
-            Language.ENGLISH,
-            Language.GERMAN,
-            Language.FRENCH
-    ).build();
+    static final LanguageDetector detector = LanguageDetectorBuilder.fromLanguages(Language.ENGLISH, Language.GERMAN, Language.FRENCH).build();
 
     public InvertedIndex() {
         try {
@@ -108,9 +109,31 @@ public class InvertedIndex {
             try {
                 File file = new File(document);
                 documentId = file.getName().substring(0, file.getName().lastIndexOf('.'));
-                scanner = new Scanner(file).useDelimiter("\\W+");
+                scanner = new Scanner(file);
             } catch (IOException e) {
                 throw new RuntimeException(e);
+            }
+
+            documentMetadataMap.put(ID_MAP_KEY, documentId);
+
+            while (scanner.hasNextLine()) {
+                String nextLine = scanner.nextLine();
+                if (nextLine.contains("Title: ")) {
+                    String title = StringUtils.substringAfter(nextLine, "Title: ");
+                    documentMetadataMap.put(TITLE_MAP_KEY, title);
+                }
+                if (nextLine.contains("Author: ")) {
+                    String author = StringUtils.substringAfter(nextLine, "Author: ");
+                    documentMetadataMap.put(AUTHOR_MAP_KEY, author);
+                }
+                if (nextLine.contains("Release date: ")) {
+                    String releaseDate = StringUtils.substringAfter(nextLine, "Release date: ");
+                    documentMetadataMap.put(RELEASE_DATE_MAP_KEY, releaseDate);
+                }
+                if (nextLine.contains("Language: ")) {
+                    String language = StringUtils.substringAfter(nextLine, "Language: ");
+                    documentMetadataMap.put(LANGUAGE_MAP_KEY, language);
+                }
             }
 
             while (scanner.hasNext()) {
@@ -171,8 +194,7 @@ public class InvertedIndex {
                 Map<Object, Map<Object, Object>> existingMultimap = gson.fromJson(myReader, Map.class);
 
                 multiMap = EntryStream.of(existingMultimap).append(EntryStream.of(multiMap)).toMap((w1, w2) -> {
-                    ((ArrayList<Object>) w1.get(DOCUMENTS_MAP_KEY))
-                            .addAll(((ArrayList<Object>) w2.get(DOCUMENTS_MAP_KEY)));
+                    ((ArrayList<Object>) w1.get(DOCUMENTS_MAP_KEY)).addAll(((ArrayList<Object>) w2.get(DOCUMENTS_MAP_KEY)));
                     return w1;
                 });
             }

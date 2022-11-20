@@ -1,11 +1,8 @@
 package org.ulpgc;
 
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.ulpgc.crawler.Crawler;
-import org.ulpgc.invertedIndex.InvertedIndex;
-import static spark.Spark.*;
-import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.*;
+
+// Edit configuration -> Add the JVM option "--add-exports java.base/sun.nio.ch=ALL-UNNAMED"
 
 public class Main {
 
@@ -17,14 +14,29 @@ public class Main {
                 .config("spark.master", "local")
                 .getOrCreate();
 
-        Dataset<Row> df = spark.read().json("words.json");
+        Dataset<Row> words = spark.read().json("wordsFormatted.json");
+        Dataset<Row> meta = spark.read().json("metadata.json");
 
-        df.show();
+        System.out.println("Schema\n=======================");
+        words.printSchema();
+        meta.printSchema();
 
-        get("/hello", (req, res) -> "Hello World!");
+        words.createOrReplaceTempView("words");
+        meta.createOrReplaceTempView("meta");
 
-//        df.show();
+//        Dataset<Row> language = spark.sql("SELECT language FROM words");
+        System.out.println("\n\nSQL Result\n=======================");
+
+        words.show();
+        meta.show();
+
+        System.out.println("\n\nSQL Result JOIN tables\n=======================");
+
+        spark.sql("SELECT * FROM meta m JOIN words w ON m.id_word = w.id").show();
+
+        spark.stop();
 //
+//        get("/hello", (req, res) -> "Hello World!");
 //        new Crawler();
 //
 //        new InvertedIndex();

@@ -41,7 +41,7 @@ public class Crawler implements CrawlerInterface {
         Crawler.endId = endId;
 
         timer = new Timer();
-        timer.schedule(new crawlerTask(), 0, 60_000); // execute CrawlerTask every 60 seconds
+        timer.schedule(new crawlerTask(), 0, 10_000); // execute CrawlerTask every 60 seconds TODO
     }
 
     static class crawlerTask extends TimerTask {

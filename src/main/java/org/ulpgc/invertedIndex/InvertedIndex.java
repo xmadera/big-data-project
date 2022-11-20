@@ -11,8 +11,6 @@ import com.github.pemistahl.lingua.api.LanguageDetector;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -21,11 +19,15 @@ import static org.ulpgc.tools.StringTools.isStringNumeric;
 public class InvertedIndex {
 
     Timer timer;
+
     static final String DOCUMENTS_MAP_KEY = "documents";
     static final String LANGUAGE_MAP_KEY = "language";
+
     static final String DATA_MART_PATH = "src/main/data_mart/";
     static final String DATA_LAKE_PATH = "src/main/data_lake/";
     static final String WORDS_JSON_FILE = DATA_MART_PATH + "words.json";
+
+    static final ArrayList<String> TAGS_TO_REMOVE = new ArrayList<String>(List.of("NUM", "DET", "ADP", "AUX"));
 
     static ArrayList<File> listOfProcessedFiles = new ArrayList<>();
     static Map<Object, Map<Object, Object>> multiMap = new HashMap<>();
@@ -132,7 +134,7 @@ public class InvertedIndex {
 
                 Language detectedLanguage = detector.detectLanguageOf(token[0]);
 
-                documentWordsLanguageMap.put(token[0], detectedLanguage.getIsoCode639_1());
+                documentWordsLanguageMap.put(token[0], detectedLanguage.getIsoCode639_1().toString().toLowerCase());
 
                 assert posTaggerEN != null;
 
@@ -145,7 +147,7 @@ public class InvertedIndex {
                 }
 
                 if (tag[0] != null) {
-                    if (tag[0].equals("NUM") || tag[0].equals("DET") || tag[0].equals("ADP") || tag[0].equals("AUX")) {
+                    if (TAGS_TO_REMOVE.contains(tag[0])) {
                         documentWordsIterator.remove();
                     }
                 }
@@ -174,19 +176,21 @@ public class InvertedIndex {
             e.printStackTrace();
         }
 
-
         try {
             File existingFile = new File(WORDS_JSON_FILE);
             if (existingFile.isFile()) {
                 FileReader myReader = new FileReader(WORDS_JSON_FILE);
                 Map<Object, Map<Object, Object>> existingMultimap = gson.fromJson(myReader, Map.class);
 
-                multiMap = EntryStream.of(existingMultimap).append(EntryStream.of(multiMap)).toMap((e1, e2) -> e1);
+                multiMap = EntryStream.of(existingMultimap).append(EntryStream.of(multiMap)).toMap((w1, w2) -> {
+                    ((ArrayList<Object>) w1.get(DOCUMENTS_MAP_KEY))
+                            .addAll(((ArrayList<Object>) w2.get(DOCUMENTS_MAP_KEY)));
+                    return w1;
+                });
             }
 
             String json = gson.toJson(multiMap);
             multiMap.clear();
-
 
             FileWriter myWriter = new FileWriter(WORDS_JSON_FILE);
             myWriter.write(json);
@@ -195,11 +199,5 @@ public class InvertedIndex {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    private static String getCurrentTime() {
-        DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
-        Date date = new Date();
-        return dateFormat.format(date);
     }
 }

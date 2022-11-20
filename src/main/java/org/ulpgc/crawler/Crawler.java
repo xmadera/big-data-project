@@ -32,7 +32,7 @@ public class Crawler implements CrawlerInterface {
     static final ForkJoinPool forkJoinPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors());
 
     public Crawler() {
-        timerCrawler(0, 15);
+        timerCrawler(2, 17);
     }
 
     public void timerCrawler(int id, int endId) {

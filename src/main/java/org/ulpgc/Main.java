@@ -7,6 +7,7 @@ import org.apache.spark.sql.*;
 public class Main {
 
     public static void main(String[] args) {
+//        TODO: create table document -> based on documents array attribute in table words
 
         SparkSession spark = SparkSession
                 .builder()
@@ -32,7 +33,7 @@ public class Main {
 
         System.out.println("\n\nSQL Result JOIN tables\n=======================");
 
-        spark.sql("SELECT * FROM meta m JOIN words w ON m.id_word = w.id").show();
+        spark.sql("SELECT * FROM meta m JOIN words w ON m.id_doc = w.id").show();
 
         spark.stop();
 //

@@ -153,9 +153,8 @@ public class InvertedIndex {
                     ArrayList<Object> newArray = new ArrayList<>();
                     newArray.add(finalDocumentId);
                     multiMap.get(word).put(DOCUMENTS_MAP_KEY, newArray);
+                    multiMap.get(word).put(LANGUAGE_MAP_KEY, documentWordsLanguageMap.get(word));
                 }
-
-                multiMap.get(word).put(LANGUAGE_MAP_KEY, documentWordsLanguageMap.get(word));
             });
         }
         try {
@@ -170,6 +169,17 @@ public class InvertedIndex {
         String json = gson.toJson(multiMap);
 
         try {
+            File existingFile = new File("words.json");
+            if (existingFile.isFile()) {
+                FileReader myReader = new FileReader("words.json");
+                Map<Object, Map<Object, Object>> existingMultimap = gson.fromJson(myReader, Map.class);
+
+//                multiMap =
+                multiMap.clear();
+                multiMap = existingMultimap;
+            }
+
+
             FileWriter myWriter = new FileWriter("words.json");
             myWriter.write(json);
             myWriter.close();

@@ -3,6 +3,7 @@ package org.ulpgc.invertedIndex;
 import com.github.pemistahl.lingua.api.Language;
 import com.github.pemistahl.lingua.api.LanguageDetectorBuilder;
 import com.google.gson.Gson;
+import one.util.streamex.EntryStream;
 import opennlp.tools.postag.POSModel;
 import opennlp.tools.postag.POSTaggerME;
 import com.github.pemistahl.lingua.api.LanguageDetector;
@@ -20,6 +21,7 @@ public class InvertedIndex {
     Timer timer;
     static final String DOCUMENTS_MAP_KEY = "documents";
     static final String LANGUAGE_MAP_KEY = "language";
+    static final String WORDS_JSON_FILE = "words.json";
 
     static ArrayList<File> listOfProcessedFiles = new ArrayList<>();
     static Map<Object, Map<Object, Object>> multiMap = new HashMap<>();
@@ -32,30 +34,23 @@ public class InvertedIndex {
     }
 
     public void inverted_index_of() {
-        timer = new Timer();
-        timer.schedule(new InvertedIndex.invertedIndexTask(), 0, 60_000); // execute CrawlerTask every 60 seconds
-    }
 
-    static class invertedIndexTask extends TimerTask {
-        public void run() {
+        // Get list of txt files from folder based on current time
+        String currentDate = getCurrentTime();
+        File folder = new File(String.format("src/main/document_repository/%s", currentDate));
 
-            // Get list of txt files from folder based on current time
-            String currentDate = getCurrentTime();
-            File folder = new File(String.format("src/main/document_repository/%s", currentDate));
+        if (folder.listFiles() == null) return;
 
-            if (folder.listFiles() == null) return;
+        ArrayList<File> tempListFiles = new ArrayList<>(List.of(Objects.requireNonNull(folder.listFiles())));
+        tempListFiles.removeIf(file -> listOfProcessedFiles.contains(file));
+        listOfProcessedFiles.addAll(tempListFiles);
 
-            ArrayList<File> tempListFiles = new ArrayList<>(List.of(Objects.requireNonNull(folder.listFiles())));
-            tempListFiles.removeIf(file -> listOfProcessedFiles.contains(file));
-            listOfProcessedFiles.addAll(tempListFiles);
+        List<String> documentPaths = tempListFiles.stream().map(File::getPath).collect(Collectors.toList());
 
-            List<String> documentPaths = tempListFiles.stream().map(File::getPath).collect(Collectors.toList());
+        if (documentPaths.isEmpty()) return;
 
-            if (documentPaths.isEmpty()) return;
-
-            System.out.println("Documents to process inside inverted_index: " + documentPaths);
-            executeInvertedIndex(documentPaths);
-        }
+        System.out.println("Documents to process inside inverted_index: " + documentPaths);
+        executeInvertedIndex(documentPaths);
     }
 
     public static void executeInvertedIndex(List<String> documentList) {
@@ -166,21 +161,21 @@ public class InvertedIndex {
             e.printStackTrace();
         }
 
-        String json = gson.toJson(multiMap);
 
         try {
-            File existingFile = new File("words.json");
+            File existingFile = new File(WORDS_JSON_FILE);
             if (existingFile.isFile()) {
-                FileReader myReader = new FileReader("words.json");
+                FileReader myReader = new FileReader(WORDS_JSON_FILE);
                 Map<Object, Map<Object, Object>> existingMultimap = gson.fromJson(myReader, Map.class);
 
-//                multiMap =
-                multiMap.clear();
-                multiMap = existingMultimap;
+                multiMap = EntryStream.of(existingMultimap).append(EntryStream.of(multiMap)).toMap((e1, e2) -> e1);
             }
 
+            String json = gson.toJson(multiMap);
+            multiMap.clear();
 
-            FileWriter myWriter = new FileWriter("words.json");
+
+            FileWriter myWriter = new FileWriter(WORDS_JSON_FILE);
             myWriter.write(json);
             myWriter.close();
             System.out.println("Words json updated");

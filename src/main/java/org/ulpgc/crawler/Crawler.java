@@ -1,13 +1,14 @@
 package org.ulpgc.crawler;
 
+import org.ulpgc.invertedIndex.InvertedIndex;
+
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-
 import java.net.URL;
 import java.util.*;
 import java.text.*;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.channels.Channels;
@@ -16,10 +17,12 @@ import java.nio.channels.ReadableByteChannel;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.IntStream;
 
 public class Crawler implements CrawlerInterface {
+    static InvertedIndex invertedIndex;
     Timer timer;
     static int id;
     static int endId;
@@ -29,10 +32,11 @@ public class Crawler implements CrawlerInterface {
     static final ForkJoinPool forkJoinPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors());
 
     public Crawler() {
-        timerCrawler(0, 10);
+        timerCrawler(0, 15);
     }
 
     public void timerCrawler(int id, int endId) {
+        Crawler.invertedIndex = new InvertedIndex();
         Crawler.id = id;
         Crawler.endId = endId;
 
@@ -49,7 +53,7 @@ public class Crawler implements CrawlerInterface {
     private static void setupCrawler() {
         Crawler.range = IntStream.rangeClosed(id, endId);
 
-        String url = "https://www.gutenberg.org/cache/epub/";
+        String url = "https://www.gutenberg.org/files/";
         String currentDate = getCurrentTime();
 
         String fileRepo = "src/main/document_repository";
@@ -75,19 +79,23 @@ public class Crawler implements CrawlerInterface {
 
     private static void crawl(String fileDir, String url) {
 
-        forkJoinPool.submit(() -> range.parallel().forEach(x -> {
-            String formattedUrl = url + String.format("%s/pg%s.txt", x, x);
-            String formattedFileDir = fileDir + String.format("/%s.txt", x);
+        try {
+            forkJoinPool.submit(() -> range.parallel().forEach(x -> {
+                String formattedUrl = url + String.format("%s/%s-0.txt", x, x);
+                String formattedFileDir = fileDir + String.format("/%s.txt", x);
 
-            downloadUsingNIO(formattedUrl, formattedFileDir);
+                downloadUsingNIO(formattedUrl, formattedFileDir);
+            })).get();
 
-            if (x == endId) {
-                System.out.println("Crawler finished");
+            Crawler.id += Crawler.endId + 1;
+            Crawler.endId += Crawler.endId;
+            System.out.println("Crawler finished");
 
-                Crawler.id += Crawler.endId + 1;
-                Crawler.endId += Crawler.endId;
-            }
-        }));
+            // start inverted index
+            Crawler.invertedIndex.inverted_index_of();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static void downloadUsingNIO(String formattedUrl, String formattedFileDir) {
@@ -99,8 +107,10 @@ public class Crawler implements CrawlerInterface {
             fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
             fos.close();
             rbc.close();
+        } catch (FileNotFoundException e) {
+            System.out.println("File " + formattedUrl + " does not exist!");
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            System.out.println("File " + formattedUrl + " could not be downloaded!");
         }
     }
 

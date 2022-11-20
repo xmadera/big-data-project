@@ -11,22 +11,20 @@ public class Main {
 
     public static void main(String[] args) {
 
-        SparkSession spark = SparkSession
-                .builder()
-                .appName("Java Spark SQL basic example")
-                .config("spark.master", "local")
-                .getOrCreate();
-
-        Dataset<Row> df = spark.read().json("words.json");
-
-        df.show();
-
-        get("/hello", (req, res) -> "Hello World!");
+//        SparkSession spark = SparkSession
+//                .builder()
+//                .appName("Java Spark SQL basic example")
+//                .config("spark.master", "local")
+//                .getOrCreate();
+//
+//        Dataset<Row> df = spark.read().json("words.json");
+//
+//        df.show();
+//
+//        get("/hello", (req, res) -> "Hello World!");
 
 //        df.show();
 //
-//        new Crawler();
-//
-//        new InvertedIndex();
+            new Crawler();
     }
 }

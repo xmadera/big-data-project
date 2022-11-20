@@ -9,6 +9,8 @@ import opennlp.tools.postag.POSTaggerME;
 import com.github.pemistahl.lingua.api.LanguageDetector;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -21,7 +23,9 @@ public class InvertedIndex {
     Timer timer;
     static final String DOCUMENTS_MAP_KEY = "documents";
     static final String LANGUAGE_MAP_KEY = "language";
-    static final String WORDS_JSON_FILE = "words.json";
+    static final String DATA_MART_PATH = "src/main/data_mart/";
+    static final String DATA_LAKE_PATH = "src/main/data_lake/";
+    static final String WORDS_JSON_FILE = DATA_MART_PATH + "words.json";
 
     static ArrayList<File> listOfProcessedFiles = new ArrayList<>();
     static Map<Object, Map<Object, Object>> multiMap = new HashMap<>();
@@ -30,14 +34,23 @@ public class InvertedIndex {
     static ClassLoader classloader = Thread.currentThread().getContextClassLoader();
 
     public InvertedIndex() {
+        try {
+            File theRepo = new File(DATA_MART_PATH);
+
+            if (!Files.exists(Path.of(theRepo.toURI()))) {
+                Files.createDirectory(theRepo.toPath());
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to create directory!: " + e.getMessage());
+        }
+
         inverted_index_of();
     }
 
     public void inverted_index_of() {
 
-        // Get list of txt files from folder based on current time
-        String currentDate = getCurrentTime();
-        File folder = new File(String.format("src/main/document_repository/%s", currentDate));
+        // Get list of txt files from data lake folder
+        File folder = new File(DATA_LAKE_PATH);
 
         if (folder.listFiles() == null) return;
 

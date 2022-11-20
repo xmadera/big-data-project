@@ -7,8 +7,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
-import java.util.*;
-import java.text.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.channels.Channels;
@@ -27,6 +25,8 @@ public class Crawler implements CrawlerInterface {
     static int id;
     static int endId;
     static IntStream range;
+    static final String DATA_LAKE_PATH = "src/main/data_lake/";
+    static final String GUTENBERG_FILES_URL = "https://www.gutenberg.org/files/";
 
     // Number of threads based on individual hardware
     static final ForkJoinPool forkJoinPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors());
@@ -53,36 +53,25 @@ public class Crawler implements CrawlerInterface {
     private static void setupCrawler() {
         Crawler.range = IntStream.rangeClosed(id, endId);
 
-        String url = "https://www.gutenberg.org/files/";
-        String currentDate = getCurrentTime();
-
-        String fileRepo = "src/main/document_repository";
-        String fileDir = String.format("src/main/document_repository/%s", currentDate);
-
         try {
-            File theRepo = new File(fileRepo);
-            File theDir = new File(fileDir);
+            File theRepo = new File(DATA_LAKE_PATH);
 
             if (!Files.exists(Path.of(theRepo.toURI()))) {
                 Files.createDirectory(theRepo.toPath());
-            }
-
-            if (!Files.exists(Path.of(fileDir))) {
-                Files.createDirectory(theDir.toPath());
             }
         } catch (IOException e) {
             System.err.println("Failed to create directory!: " + e.getMessage());
         }
 
-        crawl(fileDir, url);
+        crawl();
     }
 
-    private static void crawl(String fileDir, String url) {
+    private static void crawl() {
 
         try {
             forkJoinPool.submit(() -> range.parallel().forEach(x -> {
-                String formattedUrl = url + String.format("%s/%s-0.txt", x, x);
-                String formattedFileDir = fileDir + String.format("/%s.txt", x);
+                String formattedUrl = GUTENBERG_FILES_URL + String.format("%s/%s-0.txt", x, x);
+                String formattedFileDir = DATA_LAKE_PATH + String.format("/%s.txt", x);
 
                 downloadUsingNIO(formattedUrl, formattedFileDir);
             })).get();
@@ -112,11 +101,5 @@ public class Crawler implements CrawlerInterface {
         } catch (IOException e) {
             System.out.println("File " + formattedUrl + " could not be downloaded!");
         }
-    }
-
-    private static String getCurrentTime() {
-        DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
-        Date date = new Date();
-        return dateFormat.format(date);
     }
 }

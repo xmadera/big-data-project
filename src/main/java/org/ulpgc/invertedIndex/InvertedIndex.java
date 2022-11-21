@@ -9,11 +9,14 @@ import opennlp.tools.postag.POSModel;
 import opennlp.tools.postag.POSTaggerME;
 import com.github.pemistahl.lingua.api.LanguageDetector;
 import org.apache.commons.lang3.StringUtils;
+import spark.utils.Assert;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.ulpgc.tools.StringTools.isStringNumeric;
@@ -128,9 +131,12 @@ public class InvertedIndex {
                     String author = StringUtils.substringAfter(nextLine, "Author: ");
                     documentMetadataMap.put(AUTHOR_MAP_KEY, author);
                 }
-                if (nextLine.contains("Release date: ")) {
-                    String releaseDate = StringUtils.substringAfter(nextLine, "Release date: ");
-                    documentMetadataMap.put(RELEASE_DATE_MAP_KEY, releaseDate);
+                if (nextLine.contains("Release Date: ")) {
+                    Pattern pattern = Pattern.compile("\\d{4}");
+                    Matcher matcher = pattern.matcher(nextLine);
+                    if (matcher.find()) {
+                        documentMetadataMap.put(RELEASE_DATE_MAP_KEY, matcher.group());
+                    }
                 }
                 if (nextLine.contains("Language: ")) {
                     String language = StringUtils.substringAfter(nextLine, "Language: ");

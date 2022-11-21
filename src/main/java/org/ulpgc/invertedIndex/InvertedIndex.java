@@ -3,6 +3,7 @@ package org.ulpgc.invertedIndex;
 import com.github.pemistahl.lingua.api.Language;
 import com.github.pemistahl.lingua.api.LanguageDetectorBuilder;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import one.util.streamex.EntryStream;
 import opennlp.tools.postag.POSModel;
 import opennlp.tools.postag.POSTaggerME;
@@ -36,8 +37,8 @@ public class InvertedIndex {
 
     static ArrayList<File> listOfProcessedFiles = new ArrayList<>();
     static Map<Object, Map<Object, Object>> multiMap = new HashMap<>();
-    static Map<Object, Object> documentMetadataMap = new HashMap<>();
-    static Gson gson = new Gson();
+    static ArrayList<Object> documentMetadata = new ArrayList<>();
+    static Gson gson = new GsonBuilder().setPrettyPrinting().create();
     static ClassLoader classloader = Thread.currentThread().getContextClassLoader();
 
     static InputStream posModelInEN = classloader.getResourceAsStream("opennlp-en-ud-ewt-pos-1.0-1.9.3.bin");
@@ -105,6 +106,7 @@ public class InvertedIndex {
 
         for (String document : documentList) {
             ArrayList<String> documentWords = new ArrayList<>();
+            Map<Object, Object> documentMetadataMap = new HashMap<>();
 
             try {
                 File file = new File(document);
@@ -136,6 +138,9 @@ public class InvertedIndex {
                 }
             }
 
+            documentMetadata.add(documentMetadataMap);
+
+            // List of WORDS for language tagger
             while (scanner.hasNext()) {
                 String nextWord = scanner.next().toLowerCase();
                 if (!isStringNumeric(nextWord) && nextWord.length() > 1 && !documentWords.contains(nextWord)) {
@@ -187,6 +192,34 @@ public class InvertedIndex {
             scanner.close();
         }
 
+        // Saving METADATA to JSON file
+        try {
+            // If FILE already exist, update values
+
+//            File existingFile = new File(METADATA_JSON_FILE);
+
+//            if (existingFile.isFile()) {
+//                FileReader myReader = new FileReader(METADATA_JSON_FILE);
+//                Map<Object, Map<Object, Object>> existingMultimap = gson.fromJson(myReader, Map.class);
+
+//                multiMap = EntryStream.of(existingMultimap).append(EntryStream.of(multiMap)).toMap((w1, w2) -> {
+//                    ((ArrayList<Object>) w1.get(DOCUMENTS_MAP_KEY)).addAll(((ArrayList<Object>) w2.get(DOCUMENTS_MAP_KEY)));
+//                    return w1;
+//                });
+//            }
+//            System.out.println(documentMetadata);
+            String json = gson.toJson(documentMetadata);
+            documentMetadata.clear();
+
+            FileWriter myWriter = new FileWriter(METADATA_JSON_FILE);
+            myWriter.write(json);
+            myWriter.close();
+            System.out.println("Metadata json updated");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Saving WORDS to JSON file
         try {
             File existingFile = new File(WORDS_JSON_FILE);
             if (existingFile.isFile()) {

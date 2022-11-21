@@ -1,0 +1,86 @@
+[
+  {
+    "author": "Aesop",
+    "language": "English",
+    "id": "28",
+    "title": "The Fables of Aesop"
+  },
+  {
+    "author": "John Milton",
+    "language": "English",
+    "id": "20",
+    "title": "Paradise Lost"
+  },
+  {
+    "author": "Aesop",
+    "language": "English",
+    "id": "21",
+    "title": "Aesop’s Fables"
+  },
+  {
+    "author": "H. G. Wells",
+    "language": "English",
+    "id": "35",
+    "title": "The Time Machine"
+  },
+  {
+    "author": "Frederick Douglass",
+    "language": "English",
+    "id": "23",
+    "title": "Narrative of the Life of Frederick Douglass"
+  },
+  {
+    "author": "H. G. Wells",
+    "language": "English",
+    "id": "36",
+    "title": "The War of the Worlds"
+  },
+  {
+    "author": "Peter Mark Roget",
+    "language": "English",
+    "id": "22",
+    "title": "Roget’s Thesaurus"
+  },
+  {
+    "author": "John Milton",
+    "language": "English",
+    "id": "26",
+    "title": "Paradise Lost"
+  },
+  {
+    "author": "Charlotte Perkins Stetson Gilman",
+    "language": "English",
+    "id": "32",
+    "title": "Herland"
+  },
+  {
+    "author": "Nathaniel Hawthorne",
+    "language": "English",
+    "id": "33",
+    "title": "The Scarlet Letter"
+  },
+  {
+    "author": "Thomas Hardy",
+    "language": "English",
+    "id": "27",
+    "title": "Far from the Madding Crowd"
+  },
+  {
+    "author": "Sophocles",
+    "language": "English",
+    "id": "31",
+    "title": "The Oedipus Trilogy"
+  },
+  {
+    "author": "Willa Cather",
+    "language": "English",
+    "id": "24",
+    "title": "O Pioneers!"
+  },
+  {
+    "author": "Various",
+    "language": "English",
+    "id": "30",
+    "title": "The Bible, King James Version"
+  }
+]

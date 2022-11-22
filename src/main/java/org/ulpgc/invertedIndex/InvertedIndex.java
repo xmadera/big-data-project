@@ -9,7 +9,6 @@ import opennlp.tools.postag.POSModel;
 import opennlp.tools.postag.POSTaggerME;
 import com.github.pemistahl.lingua.api.LanguageDetector;
 import org.apache.commons.lang3.StringUtils;
-import spark.utils.Assert;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -27,12 +26,15 @@ public class InvertedIndex {
 
     static final String DOCUMENTS_MAP_KEY = "documents";
     static final String LANGUAGE_MAP_KEY = "language";
-    static final String ID_MAP_KEY = "id";
     static final String TITLE_MAP_KEY = "title";
     static final String AUTHOR_MAP_KEY = "author";
     static final String RELEASE_DATE_MAP_KEY = "release_date";
+    static final String TRANSLATOR_MAP_KEY = "translator";
+    static final String PRODUCED_BY_MAP_KEY = "produced_by";
+
     static final String DATA_MART_PATH = "src/main/data_mart/";
     static final String DATA_LAKE_PATH = "src/main/data_lake/";
+
     static final String WORDS_JSON_FILE = DATA_MART_PATH + "words.json";
     static final String METADATA_JSON_FILE = DATA_MART_PATH + "metadata.json";
 
@@ -40,7 +42,8 @@ public class InvertedIndex {
 
     static ArrayList<File> listOfProcessedFiles = new ArrayList<>();
     static Map<Object, Map<Object, Object>> multiMap = new HashMap<>();
-    static ArrayList<Object> documentMetadata = new ArrayList<>();
+
+    static Map<Object, Map<Object, Object>> multiMapMetadata = new HashMap<>();
     static Gson gson = new GsonBuilder().setPrettyPrinting().create();
     static ClassLoader classloader = Thread.currentThread().getContextClassLoader();
 
@@ -99,7 +102,7 @@ public class InvertedIndex {
 
         if (documentPaths.isEmpty()) return;
 
-        System.out.println("Documents to process inside inverted_index: " + documentPaths);
+//        System.out.println("Documents to process inside inverted_index: " + documentPaths);
         executeInvertedIndex(documentPaths);
     }
 
@@ -119,8 +122,6 @@ public class InvertedIndex {
                 throw new RuntimeException(e);
             }
 
-            documentMetadataMap.put(ID_MAP_KEY, documentId);
-
             while (scanner.hasNextLine()) {
                 String nextLine = scanner.nextLine();
                 if (nextLine.contains("Title: ")) {
@@ -130,6 +131,14 @@ public class InvertedIndex {
                 if (nextLine.contains("Author: ")) {
                     String author = StringUtils.substringAfter(nextLine, "Author: ");
                     documentMetadataMap.put(AUTHOR_MAP_KEY, author);
+                }
+                if (nextLine.contains("Translator: ")) {
+                    String translator = StringUtils.substringAfter(nextLine, "Translator: ");
+                    documentMetadataMap.put(TRANSLATOR_MAP_KEY, translator);
+                }
+                if (nextLine.contains("Produced by: ")) {
+                    String producedBy = StringUtils.substringAfter(nextLine, "Produced by: ");
+                    documentMetadataMap.put(PRODUCED_BY_MAP_KEY, producedBy);
                 }
                 if (nextLine.contains("Release Date: ")) {
                     Pattern pattern = Pattern.compile("\\d{4}");
@@ -144,7 +153,7 @@ public class InvertedIndex {
                 }
             }
 
-            documentMetadata.add(documentMetadataMap);
+            multiMapMetadata.put(documentId, documentMetadataMap);
 
             // List of WORDS for language tagger
             while (scanner.hasNext()) {
@@ -200,22 +209,17 @@ public class InvertedIndex {
 
         // Saving METADATA to JSON file
         try {
-            // If FILE already exist, update values
+            File existingFile = new File(METADATA_JSON_FILE);
 
-//            File existingFile = new File(METADATA_JSON_FILE);
+            if (existingFile.isFile()) {
+                FileReader myReader = new FileReader(METADATA_JSON_FILE);
+                Map<Object, Map<Object, Object>> existingMultimap = gson.fromJson(myReader, Map.class);
 
-//            if (existingFile.isFile()) {
-//                FileReader myReader = new FileReader(METADATA_JSON_FILE);
-//                Map<Object, Map<Object, Object>> existingMultimap = gson.fromJson(myReader, Map.class);
+                multiMapMetadata = EntryStream.of(existingMultimap).append(EntryStream.of(multiMapMetadata)).toMap((w1, w2) -> w1);
+            }
 
-//                multiMap = EntryStream.of(existingMultimap).append(EntryStream.of(multiMap)).toMap((w1, w2) -> {
-//                    ((ArrayList<Object>) w1.get(DOCUMENTS_MAP_KEY)).addAll(((ArrayList<Object>) w2.get(DOCUMENTS_MAP_KEY)));
-//                    return w1;
-//                });
-//            }
-//            System.out.println(documentMetadata);
-            String json = gson.toJson(documentMetadata);
-            documentMetadata.clear();
+            String json = gson.toJson(multiMapMetadata);
+            multiMapMetadata.clear();
 
             FileWriter myWriter = new FileWriter(METADATA_JSON_FILE);
             myWriter.write(json);
